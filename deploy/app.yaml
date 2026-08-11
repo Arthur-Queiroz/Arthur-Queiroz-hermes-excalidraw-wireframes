@@ -1,0 +1,55 @@
+apiVersion: vps.devarthur.com.br/v1
+kind: AppManifest
+metadata:
+  id: excalidraw-wireframes
+  name: "Excalidraw + Hermes Wireframes"
+  owner: Arthur-Queiroz/Arthur-Queiroz-hermes-excalidraw-wireframes
+  createdAt: "2026-08-11"
+spec:
+  image:
+    registry: ghcr.io
+    repository: arthur-queiroz/arthur-queiroz-hermes-excalidraw-wireframes
+  runtime:
+    type: container
+    # O hostPath precisa pertencer a 65532:65532 antes do primeiro release.
+    user: "65532:65532"
+    readOnlyRootFilesystem: true
+    noNewPrivileges: true
+  resources:
+    memory: "256m"
+    cpus: "0.25"
+  network:
+    edgeNetwork: true
+    internalPort: 8080
+  ingress:
+    host: excalidraw.devarthur.com.br
+    path: /
+    tls: true
+  healthcheck:
+    path: /healthz
+    port: 8080
+    interval: "5s"
+    timeout: "3s"
+    retries: 6
+    startPeriod: "5s"
+  volumes:
+    - name: wireframes
+      path: /data
+      hostPath: /var/lib/vps-apps/excalidraw-wireframes/data
+      size: "1g"
+  env:
+    - name: WIREFRAME_ADDRESS
+      value: ":8080"
+    - name: WIREFRAME_DATA_DIR
+      value: "/data"
+    - name: WIREFRAME_PUBLIC_URL
+      value: "https://excalidraw.devarthur.com.br"
+    - name: WIREFRAME_API_TOKEN
+      fromSecret: api-token
+  deployment:
+    strategy: rolling
+    rollbackOnFailure: true
+    keepRevisions: 5
+  dependencies:
+    networks:
+      - edge
