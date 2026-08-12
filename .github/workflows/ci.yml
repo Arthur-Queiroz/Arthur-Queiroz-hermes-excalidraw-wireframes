@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# packages: write precisa estar no nivel do workflow: sem isso o job aninhado
+# do reusable falha no startup, antes de rodar qualquer step.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: '1.26.x'
+          cache: true
+      - run: go test -race ./...
+      - run: go vet ./...
+
+  # Build+push no GHCR e release na VPS pela chave SSH confinada
+  # (deploy-excalidraw-wireframes). O deployctl so aceita digest, nunca tag.
+  release:
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    needs: test
+    uses: Arthur-Queiroz/vps-deploy/.github/workflows/app-deploy.yml@main
+    with:
+      app-id: excalidraw-wireframes
+      image-repo: arthur-queiroz/arthur-queiroz-hermes-excalidraw-wireframes
+    secrets:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
